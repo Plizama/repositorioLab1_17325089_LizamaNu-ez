@@ -1,7 +1,7 @@
 #lang racket
 ;;TDA
 
-;; type filesystem = list name X drives-ingresados X users X log X drive_actual X trash X fechaCreacion
+;; type filesystem = list name X drives-ingresados X users X log X drive_actual X trash
 ;; type name = str
 ;; type drives-ingresados = list letters
 ;; type letters = list letter X name X capacity X directory X file
@@ -33,6 +33,4 @@
 
 ;;drive_actual = char
 
-;;type trash = list (.....)
-
-;;type fechaCreacion = number
+;;type trash = 

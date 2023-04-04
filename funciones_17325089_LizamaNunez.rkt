@@ -85,7 +85,18 @@
 (define (login system)
   (lambda (userName-log)
     (cond
-      [(null? (get-user-log system))
+      [(eq? "" (get-user-log system))
       (make-system (get-nameSystem system)(get-drives-ingresados system)(get-users system) userName-log (get-drive-actual system)(get-trash system) make-fechaCreacion)]
       [else system])))
 
+;; Funcion 6: TDA system logout
+(define (logout system)
+  ( make-system (get-nameSystem system)(get-drives-ingresados system)(get-users system) "" (get-drive-actual system)(get-trash system) make-fechaCreacion))
+
+;; Funcion 7: TDA system - switch-drive
+(define(switch-drive system)
+  (lambda (letter)
+    (make-system (get-nameSystem system)(get-drives-ingresados system)(get-users system) (get-user-log system) letter (get-trash system) make-fechaCreacion)))
+
+;; type name-directory = list name X ruta X user-creador X fecha-creacion X fecha-modificacion X seguridad X file
+;; Funcion 8: TDA system-md (make directory)
