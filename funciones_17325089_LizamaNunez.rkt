@@ -1,12 +1,12 @@
 #lang racket
 
-;; type filesystem = list name X drives X users X userLog X rutaActual X fechaCreacion X directory X trash
+;; type filesystem = list name X drives X users X userLog X rutaActual X fechaCreacion X directory X file X trash
 
 ;; CAPA CONSTRUCTORA
 
 ;; Constructor sistema 
-(define (make-system name drives users userLog rutaActual fechaCreacion directory trash)
-  (list name drives users userLog rutaActual fechaCreacion directory trash))
+(define (make-system name drives users userLog rutaActual fechaCreacion directory file trash)
+  (list name drives users userLog rutaActual fechaCreacion directory file trash))
 
 ;; Constructor drives
 (define (make-drives letter name capacity directory file)
@@ -29,7 +29,7 @@
 
 ;; CAPA SELECTORA
 
-;; type filesystem = list name X drives X users X userLog X rutaActual X fechaCreacion X directory X trash
+;; type filesystem = list name X drives X users X userLog X rutaActual X fechaCreacion X directory X file X trash
 
 
 ;; Selector nombre systema
@@ -50,15 +50,15 @@
 
 ;; Selector ruta actual
 (define (get-rutaActual system)
-  (car( cdr (cdr(cdr(reverse system))))))
+  (car( cdr (cdr (cdr(cdr(reverse system)))))))
 
 ;; Selector Fecha creacion
 (define (get-fechaCreacion system)
-  (car( cdr (cdr(reverse system)))))
+  (car(cdr(cdr(cdr(reverse system))))))
 
 ;; Selector directory
 (define (get-directory system)
-  (car ( cdr(reverse system))))
+  (car(cdr(cdr(reverse system)))))
 
 ;; Selector Nombre directorio
 (define (get-name-directory listDirectory)
@@ -68,43 +68,54 @@
 (define (get-ruta-directory listDirectory)
   (cadr listDirectory))
 
+;;selector files
+(define (get-files system)
+  (car(cdr(reverse system))))
+
 ;; Selector trash
 (define (get-trash system)
   (car(reverse system)))
+
+;; Selccionar ruta de carpeta indicada
+(define (get-rutaIndicada system folder)
+  (car (cdr (car (filter (lambda (str) (eq? (get-name-directory str) folder)) (get-directory system))))))
 
 ;; CAPA MODIFICADORA
 
 ;; Agregar drives sistema
 (define (set-drives system letter nameDrive capacity)
-  (make-system (get-nameSystem system)(cons (make-drives letter nameDrive capacity "" '())(get-drives system))(get-users system)(get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(get-trash system)))
+  (make-system (get-nameSystem system)(cons (make-drives letter nameDrive capacity "" '())(get-drives system))(get-users system)(get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(get-files system)(get-trash system)))
 
 ;; Agregar users al sistema
 (define (set-users system userName)
-  (make-system (get-nameSystem system)(get-drives system)(cons userName (get-users system))(get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(get-trash system)))
+  (make-system (get-nameSystem system)(get-drives system)(cons userName (get-users system))(get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(get-files system)(get-trash system)))
 
 ;; Agregar usuario Logueado
 (define (set-log system userName-log)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) userName-log (get-rutaActual system)make-fechaCreacion (get-directory system)(get-trash system)))
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) userName-log (get-rutaActual system)make-fechaCreacion (get-directory system)(get-files system)(get-trash system)))
 
 ;; Quitar usuario logueado
 (define (set-logout system)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) "" (get-rutaActual system) make-fechaCreacion (get-directory system)(get-trash system)))
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) "" (get-rutaActual system) make-fechaCreacion (get-directory system)(get-files system)(get-trash system)))
 
 ;; Agregar unidad fijada
 (define (set-rutaActual system letter)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) letter make-fechaCreacion (get-directory system) (get-trash system)))
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) (list letter) make-fechaCreacion (get-directory system)(get-files system) (get-trash system)))
 
 ;; type name-directory = list name X ruta X user-creador X fecha-creacion X fecha-modificacion X seguridad
 
 ;; Agregar directorio
 (define (set-directory system nameDirectory)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) (get-rutaActual system) make-fechaCreacion (cons (make-directory nameDirectory (get-rutaActual system) (get-user-log system) make-fechaCreacion make-fechaCreacion "") (get-directory system))(get-trash system)))
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) (get-rutaActual system) make-fechaCreacion (cons (make-directory nameDirectory (get-rutaActual system) (get-user-log system) make-fechaCreacion make-fechaCreacion "") (get-directory system))(get-files system)(get-trash system)))
 
 ;; Cambiar ruta
 
-(define (set-newRutaActual system newRuta)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) newRuta make-fechaCreacion (get-directory system) (get-trash system)))
+(define (set-newRutaActual system RutaAntigua newRuta)
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) (reverse (cons newRuta (reverse RutaAntigua))) make-fechaCreacion (get-directory system)(get-files system)(get-trash system)))
 
+;; Agregar file
+(define (set-files file)
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(cons file (get-files system))(get-trash system) ))
 
 ;; CAPA PERTENENCIA
 
@@ -133,7 +144,7 @@
 
 ;; Funcion 1: Creacion de nuevos sistemas
 (define (system nombre)
-  (list nombre '() '() "" '() make-fechaCreacion '() '()))
+  (list nombre '() '() "" '() make-fechaCreacion '() '() '()))
 
 ;; Funcion 2 : TDA system -run
 (define(run system command)
@@ -179,9 +190,17 @@
              (set-directory system nameDirectory)))))
 
 ;;Funcion 9: TDA system -cd (change directory)
+;; FALTA S30
 (define (cd system)
   (lambda (folderName)
-    (if (eq? folderName "...") (set-rutaActual system (reverse(cdr(reverse get-rutaActual system))))
-        (if (eq? folderName "/") (set-rutaActual system (car get-rutaActual system))
-            ( if (isNameDirectory? folderName system) (set-rutaActual system (car (cdr (car (filter (lambda (str) (eq? (get-name-directory str) folderName)) (get-directory system))))))
+    (if (eq? folderName "..") (set-rutaActual system (reverse(cdr(reverse (get-rutaActual system)))))
+        (if (eq? folderName "/") (set-rutaActual system (car(get-rutaActual system)))
+            ( if (isNameDirectory? folderName system) (set-newRutaActual system (get-rutaIndicada system folderName) folderName)
                  system)))))
+;;
+(define (fs nombreDrive . files)
+  (list nombreDrive files))
+
+;; Funcion 10: TDA system -add-file
+;;(define (add-file system)
+  ;;(lambda (set-files(fs))))
