@@ -17,8 +17,8 @@
   (list name ruta user-creator fecha-creacion fecha-modificacion seguridad))
 
 ;; Constructor files
-(define (make-file name ruta tipo texto atributos)
-  (list name ruta tipo texto atributos))
+(define (make-file filename extension contents)
+  (list filename extension contents))
 
 ;; Constructor users
 (define (make-users name-user)
@@ -72,11 +72,16 @@
 (define (get-files system)
   (car(cdr(reverse system))))
 
+;;Selector nombre files
+(define (get-name-file file)
+  (car(car file)))
+  
+
 ;; Selector trash
 (define (get-trash system)
   (car(reverse system)))
 
-;; Selccionar ruta de carpeta indicada
+;; Selecionar ruta de carpeta indicada
 (define (get-rutaIndicada system folder)
   (car (cdr (car (filter (lambda (str) (eq? (get-name-directory str) folder)) (get-directory system))))))
 
@@ -113,9 +118,9 @@
 (define (set-newRutaActual system RutaAntigua newRuta)
   (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) (reverse (cons newRuta (reverse RutaAntigua))) make-fechaCreacion (get-directory system)(get-files system)(get-trash system)))
 
-;; Agregar file
-(define (set-files file)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(cons file (get-files system))(get-trash system) ))
+;; Agregar file al sistema
+(define (set-files system filename extension content)
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(cons (make-file filename extension content) (get-files system))(get-trash system) ))
 
 ;; CAPA PERTENENCIA
 
@@ -138,16 +143,29 @@
   (member nameDirectory (map (lambda (listNAmeDirectory) (get-name-directory listNAmeDirectory))
                              (get-directory system))))
 
+;; Encontrar String en nombre de archivos
+(define (isInFile? str files)
+  (cond
+    [(null? files) null]
+    [(string-contains? (get-name-file files) str) (isInFile? str (cdr files))]
+    [else (cons (car files) (isInFile? str (cdr files)))]))
+
+;;CAPA : OTRAS FUNCIONES
+
+;; redefinir file
+(define (redefine-files system files)
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system) files (get-trash system)))
+
 ;; FUNCIONES SISTEMA
 
-;; type filesystem = list name X drives X users X userLog X rutaActual X fechaCreacion X directory X trash
+;; type filesystem = list name X drives X users X userLog X rutaActual X fechaCreacion X directory X file X trash
 
 ;; Funcion 1: Creacion de nuevos sistemas
 (define (system nombre)
   (list nombre '() '() "" '() make-fechaCreacion '() '() '()))
 
 ;; Funcion 2 : TDA system -run
-(define(run system command)
+(define (run system command)
   (command system))
 
 ;; Funcion 3: TDA system - add-drive
@@ -197,10 +215,20 @@
         (if (eq? folderName "/") (set-rutaActual system (car(get-rutaActual system)))
             ( if (isNameDirectory? folderName system) (set-newRutaActual system (get-rutaIndicada system folderName) folderName)
                  system)))))
-;;
-(define (fs nombreDrive . files)
-  (list nombreDrive files))
 
-;; Funcion 10: TDA system -add-file
-;;(define (add-file system)
-  ;;(lambda (set-files(fs))))
+
+;;Agregar files
+(define (add-file system)
+  (lambda (filename extension content)
+    (set-files system filename extension content)))
+;; (define S30 ((run S29 add-file) "foo1.txt" "txt" "hello world 1"))
+;; (define S31 ((run S30 add-file) "foo2.txt" "txt" "hello world 2"))
+;; (define S32 ((run S31 add-file) "foo3.docx" "docx" "hello world 3"))
+;; (define S33 ((run S32 add-file) "goo4.docx" "docx" "hello world 4"))
+
+
+;; Funcion 10: TDA system add-file
+(define (del system)
+  (lambda (archivoBorrado)
+    (if (eq? (string-ref archivoBorrado 0) #\*) (redefine-files system (isInFile? (substring archivoBorrado 1) (get-files system)))
+        (if (eq? (string-ref archivoBorrado 1) #\*) (redefine-files system (isInFile? (substring archivoBorrado 2) (get-files system))) system))))
