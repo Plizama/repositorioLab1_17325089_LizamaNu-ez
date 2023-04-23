@@ -17,8 +17,14 @@
   (list name ruta user-creator fecha-creacion fecha-modificacion seguridad))
 
 ;; Constructor files
-(define (make-file filename extension contents)
-  (list filename extension contents))
+(define (file filename extension contents . atributos)
+  (list filename extension contents atributos))
+
+;; Constructor files con formato deseado
+(define set-file-partes
+         (lambda (fileCompleto system)
+           (list (car fileCompleto) (cadr fileCompleto) (caddr fileCompleto) (cadddr fileCompleto) (get-rutaActual system) (get-user-log system))))
+  
 
 ;; Constructor users
 (define (make-users name-user)
@@ -75,6 +81,16 @@
 (define (get-ruta-directory listDirectory)
   (cadr listDirectory))
 
+;;Selector user_creador directorio
+(define (get-user-directory listDirectory)
+  ( car (cdr (cdr listDirectory))))
+;; Selector fecha creacion directory
+(define (get-fechacreacion-directory listDirectory)
+  ( car (cdr (cdr ( cdr listDirectory)))))
+;; Selector seguridad directory
+(define (get-seguridad-directory listDirectory)
+  ( car (reverse listDirectory)))
+
 ;;selector files
 (define (get-files system)
   (car(cdr(reverse system))))
@@ -82,6 +98,25 @@
 ;;Selector nombre files
 (define (get-name-file file)
   (car(car file)))
+
+;;Selector extensión files
+(define (get-extension-file file)
+  (car(cdr (car file))))
+
+;;Selector texto files
+(define (get-texto-file file)
+  (car(cdr(cdr (car file)))))
+
+;;Selector atributos file
+(define (get-atributos-file file)
+  (car (cdr (cdr (reverse (car file))))))
+;;Selector user file
+(define (get-user-files files)
+  (car (reverse (car files))))
+
+;;Selector ruta files
+(define (get-ruta-files files)
+  (car (cdr (reverse files))))
 
 ;;Listado Nombre files
 (define (get-listname-file file)
@@ -119,22 +154,38 @@
 
 ;; type name-directory = list name X ruta X user-creador X fecha-creacion X fecha-modificacion X seguridad
 
-;; Agregar directorio
+;; Agregar nuevo directorio desde el nombre
 (define (set-directory system nameDirectory)
   (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) (get-rutaActual system) make-fechaCreacion (cons (make-directory nameDirectory (get-rutaActual system) (get-user-log system) make-fechaCreacion make-fechaCreacion "") (get-directory system))(get-files system)(get-trash system)))
 
-;; Cambiar ruta
+;; Copiar nuevo directorio
+(define (set-neWdirectory system newDirectory)
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) (get-rutaActual system) make-fechaCreacion (cons newDirectory (get-directory system)) (get-files system)(get-trash system)))
+
+;; Agregar directorio a ruta
 
 (define (set-newRutaActual system RutaAntigua newRuta)
   (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) (reverse (cons newRuta (reverse RutaAntigua))) make-fechaCreacion (get-directory system)(get-files system)(get-trash system)))
 
+;; Cambiar ruta por completo
+(define (set-newRutaCompleta system newRutaCompleta )
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) newRutaCompleta make-fechaCreacion (get-directory system)(get-files system)(get-trash system)))
+
 ;; Agregar file al sistema
-(define (set-files system filename extension content)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(cons (make-file filename extension content) (get-files system))(get-trash system) ))
+(define (set-files system neWfile)
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(cons neWfile ( get-files system))(get-trash system) ))
 
 ;; Agregar File al basurero
 (define (set-trash system deletedFile)
   (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(get-files system)(cons '(deletedFile) (get-trash system))))
+
+;; Cambiar ruta de file
+(define (set-ruta-files ruta file system)
+  (list (get-name-file file) (get-extension-file file) (get-texto-file file) (get-atributos-file file) ruta (get-user-log system)))
+
+;; Cambiar ruta de directory
+(define (set-ruta-directory ruta directory system)
+  (make-directory (get-name-Cadadirectory directory) ruta (get-user-log system) make-fechaCreacion make-fechaCreacion (car (reverse (car directory)))))
 
 
 ;; CAPA PERTENENCIA
@@ -152,11 +203,26 @@
 (define (isUserLog? nombreUser system)
   (eq? nombreUser (get-user-log system)))
 
-                  
+                ;;CAMBIAR!!!!!!!  
 ;; Nombre de directorio ya se encuentra ocupado
 (define (isNameDirectory? nameDirectory system)
   (member nameDirectory (map (lambda (listNAmeDirectory) (get-name-directory listNAmeDirectory))
                              (get-directory system))))
+;; listDirectory (get-directory system)
+;; Existe nombre directory?
+(define (existNameDirectory? nameDirectory listDirectory)
+  (cond
+    [(null? listDirectory) #f]
+    [ (equal? (get-name-directory (car listDirectory)) nameDirectory) #t]
+    [else (existNameDirectory? nameDirectory (cdr listDirectory))]))
+
+;;listFile (get-files system)
+;; Existe nombre file?
+(define (existNamefile? nameFile listFile)
+  (cond
+    [(null? listFile) #f]
+    [ (equal? (get-listname-file (car listFile)) nameFile) #t]
+    [else (existNamefile? nameFile (cdr listFile))]))
 
 ;; Nombre de Files existe
 (define (isNameFile? nameFile system)
@@ -172,11 +238,38 @@
 ;;CAPA : OTRAS FUNCIONES
 
 ;; redefinir file - trash
-(define (redefine-files system files trash)
+(define (redefine-files-trash system files trash)
   (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system) files (cons trash (get-trash system))))
+;; redefinir file
+(define (redefine-files system files)
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system) files (get-trash system)))
+
+
 ;; redefinir directory - trash
-(define (redefine-directory system listDirectory trash)
+(define (redefine-directory-trash system listDirectory trash)
   (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion listDirectory (get-files system) (cons trash (get-trash system))))
+
+;; redefinir directory
+(define (redefine-directory system listDirectory)
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion listDirectory (get-files system) (get-trash system)))
+
+
+
+
+;;Recorrido : (("nombre" "extension"......)) (lista de lista)
+;; Recorrer file en busca de nameFile
+(define (buscar-file nombreArchivo listaFile)
+      (cond
+        [(null? listaFile) null]
+        [(equal? (get-name-file listaFile) nombreArchivo) (cons (car listaFile)(buscar-file nombreArchivo (cdr listaFile)))]
+        [else (buscar-file nombreArchivo (cdr listaFile))]))
+
+;;Recorrer directory en busca de nameDirectory
+(define (buscar-directory nombreArchivo listaDirectory)
+      (cond
+        [(null? listaDirectory) null]
+        [(equal? (get-name-Cadadirectory listaDirectory) nombreArchivo) (cons (car listaDirectory)(buscar-directory nombreArchivo (cdr listaDirectory)))]
+        [else (buscar-directory nombreArchivo (cdr listaDirectory))]))
 
 
 ;; FUNCIONES SISTEMA
@@ -237,17 +330,21 @@
     (if (eq? folderName "..") (set-rutaActual system (reverse(cdr(reverse (get-rutaActual system)))))
         (if (eq? folderName "/") (set-rutaActual system (car(get-rutaActual system)))
             ( if (isNameDirectory? folderName system) (set-newRutaActual system (get-rutaIndicada system folderName) folderName)
-                 system)))))
+                 (if (eq? (string-ref folderName 2) #\/)(set-newRutaCompleta system (string-split folderName "/"))
+                     system))))))
 
 
 ;;Agregar files
-(define (add-file system)
-  (lambda (filename extension content)
-    (set-files system filename extension content)))
+;;(define (add-file system)
+  ;;(lambda (filename extension content)
+    ;;(set-files system filename extension content)))
 
 ;; Funcion 10: TDA system add-file
 
-
+(define add-file
+  (lambda (system)
+    (lambda (file)
+      (set-files system (set-file-partes file system)))))
 
 
 
@@ -258,7 +355,7 @@
     (define (isInFile? str files acumTrash acumFiles)
       (cond
         [(null? files) acumTrash acumFiles
-                       (redefine-files system acumFiles acumTrash)]
+                       (redefine-files-trash system acumFiles acumTrash)]
         [(string-contains? (get-name-file files) str) (isInFile? str (cdr files) (cons (car files) acumTrash) acumFiles)]
         [ else (cons (car files) (isInFile? str (cdr files) acumTrash (cons (car files) acumFiles)))]))
     
@@ -266,14 +363,14 @@
     (define (isInFilExtenLetter? str files acumTrash acumFiles)
       (cond
         [(null? files) acumTrash acumFiles
-                       (redefine-files system acumFiles acumTrash)]
+                       (redefine-files-trash system acumFiles acumTrash)]
         [(and (eq? (string-ref (get-name-file files) 0) (string-ref str 0))(string-contains? (get-name-file files) (substring str 2))) (isInFilExtenLetter? str (cdr files)(cons (car files) acumTrash) acumFiles)]
         [else (cons (car files) (isInFilExtenLetter? str (cdr files) acumTrash (cons (car files) acumFiles)))]))
     ;; Funcion interna revisa file con nombre indicado
     (define (isNameFileinFile? str files acumTrash acumFiles)
       (cond
         [(null? files) acumTrash acumFiles
-                       (redefine-files system acumFiles acumTrash)]
+                       (redefine-files-trash system acumFiles acumTrash)]
         [(equal? (get-name-file files) str) (isNameFileinFile? str (cdr files) (cons (car files) acumTrash) acumFiles)]
         [ else (cons (car files) (isNameFileinFile? str (cdr files) acumTrash (cons (car files) acumFiles)))]))
 
@@ -281,13 +378,101 @@
     (define (isNameDirectoryinDirectory? str directories acumTrash acumDirectory)
       (cond
         [(null? directories) acumTrash acumDirectory
-                       (redefine-directory system acumDirectory acumTrash)]
+                       (redefine-directory-trash system acumDirectory acumTrash)]
         [(equal? (get-name-Cadadirectory directories) str) (isNameDirectoryinDirectory? str (cdr directories) (cons (car directories) acumTrash) acumDirectory)]
         [ else (cons (car directories) (isNameDirectoryinDirectory? str (cdr directories) acumTrash (cons (car directories) acumDirectory)))]))
 
     
     (if (isNameDirectory? archivoBorrado system)(isNameDirectoryinDirectory? archivoBorrado (get-directory system) '()'())
-        (if (eq? archivoBorrado "*.*") (redefine-files system '() (get-files system))
+        (if (eq? archivoBorrado "*.*") (redefine-files-trash system '() (get-files system))
             (if (isNameFile? archivoBorrado system)(isNameFileinFile? archivoBorrado (get-files system) '()'())
                 (if (eq? (string-ref archivoBorrado 0) #\*) (isInFile? (substring archivoBorrado 1) (get-files system) '() '())
                     (if (eq? (string-ref archivoBorrado 1) #\*) (isInFilExtenLetter? archivoBorrado (get-files system) '()'()) system)))))))
+
+;; Funcion 12: TDA system- rd (revisar)
+(define (rd system)
+  (lambda (folderName)
+    (define (directoryVacio? str listaRutas)
+      (cond
+        [(null? listaRutas) #t]
+        [(member str (car listaRutas)) #f]
+        [else (directoryVacio? str (cdr listaRutas))]))
+    
+    (define (borrar-folder str directories acumTrash acumDirectory)
+      (cond
+        [(null? directories) acumTrash acumDirectory
+                       (redefine-directory-trash system acumDirectory acumTrash)]
+        [(equal? (get-name-Cadadirectory directories) str) (borrar-folder str (cdr directories) (cons (car directories) acumTrash) acumDirectory)]
+        [ else (cons (car directories) (borrar-folder str (cdr directories) acumTrash (cons (car directories) acumDirectory)))]))
+
+    (if (and (directoryVacio? folderName (map (lambda (listaRutasFiles) (get-ruta-files listaRutasFiles)) (get-files system)))(directoryVacio? folderName (map (lambda (listaRutasDirectories) (get-ruta-directory listaRutasDirectories)) (get-directory system)))) (borrar-folder folderName (get-directory system) '() '()) system )))
+
+;; Función 13: TDA system - copy
+(define (copy system)
+  (lambda (archivo ruta)
+    (if (existNamefile? archivo (get-files system)) (set-files system (set-ruta-files (string-split ruta "/") (buscar-file archivo (get-files system)) system))
+        (if (existNameDirectory? archivo (get-directory system))  (set-neWdirectory system (set-ruta-directory (string-split ruta "/") (buscar-directory archivo (get-directory system)) system))system))))
+
+;; Función 14: TDA system - move
+(define (move system)
+  (lambda (folder ruta)
+    ;; buscar file files =get-files system
+    (define (isInFile? folder files acumFiles)
+      (cond
+        [(null? files)  acumFiles
+                       (redefine-files system acumFiles)]
+        [(equal? (get-listname-file (car files)) folder) (isInFile? folder (cdr files) (cons (set-ruta-files (string-split ruta "/") files system) acumFiles))]
+        [ else (isInFile? folder (cdr files) (cons (car files) acumFiles))]))
+
+    ;;buscar directory  directories = get-directory
+    (define (isInDirectory? folder directories acumDirectories)
+      (cond
+        [(null? directories)  acumDirectories
+                       (redefine-directory system acumDirectories)]
+        [(equal? (get-name-directory (car directories)) folder) (isInDirectory? folder (cdr directories) (cons (set-ruta-directory (string-split ruta "/") directories system) acumDirectories))]
+        [ else (isInDirectory? folder (cdr directories) (cons (car directories) acumDirectories))]))
+
+    (if (existNamefile? folder (get-files system)) (isInFile? folder (get-files system) '())
+        (if (existNameDirectory? folder (get-directory system))  (isInDirectory? folder (get-directory system) '()) system))))
+
+;; Función 15: TDA system ren (rename)
+(define (ren system)
+  (lambda (originalName newName)
+    ;; buscar file files =get-files system
+    (define (isInFile? originalName files acumFiles)
+      (cond
+        [(null? files)  acumFiles
+                       (redefine-files system acumFiles)]
+        [(equal? (get-listname-file (car files)) originalName) (isInFile? originalName (cdr files) (cons (list newName (get-extension-file files) (get-texto-file files) (get-atributos-file files) (get-ruta-files (car files)) (get-user-files files)) acumFiles))]
+        [ else (isInFile? originalName (cdr files) (cons (car files) acumFiles))]))
+
+    ;;buscar directory  directories = get-directory
+    (define (isInDirectory? originalName directories acumDirectories)
+      (cond
+        [(null? directories)  acumDirectories
+                       (redefine-directory system acumDirectories)]
+        [(equal? (get-name-directory (car directories)) originalName) (isInDirectory? originalName (cdr directories) (cons (list newName (get-ruta-directory (car directories)) (get-user-directory  (car directories)) (get-fechacreacion-directory (car directories)) make-fechaCreacion (get-seguridad-directory (car directories))) acumDirectories))]
+        [ else (isInDirectory? originalName (cdr directories) (cons (car directories) acumDirectories))]))
+
+    (if (or (existNamefile? newName (get-files system)) (existNameDirectory? newName (get-directory system))) system 
+        (if (existNamefile? originalName (get-files system)) (isInFile? originalName (get-files system) '())
+            (if (existNameDirectory? originalName (get-directory system))  (isInDirectory? originalName (get-directory system) '()) system)))))
+
+;; Función 16: TDA system - dir
+(define (dir system)
+  (lambda(parametro)
+    (define (recorridoRutasFiles files rutaEscogida acumContenido)
+      (cond
+        [(null? files) acumContenido]
+        [(equal? (car (reverse (get-ruta-files (car files)))) rutaEscogida) (recorridoRutasFiles (cdr files) rutaEscogida (cons (get-listname-file (car files)) acumContenido))]
+        [else (recorridoRutasFiles (cdr files) rutaEscogida acumContenido)]))
+
+    (define (recorridoRutasDirectories directories rutaEscogida acumContenido)
+      (cond
+        [(null? directories) acumContenido]
+        [(equal? (car (reverse (get-ruta-directory (car directories)))) rutaEscogida) (recorridoRutasDirectories (cdr directories) rutaEscogida (cons (get-name-directory (car directories)) acumContenido))]
+        [else (recorridoRutasDirectories (cdr directories) rutaEscogida acumContenido)]))
+
+   ;; (if (null? parametro) (append (recorridoRutasFiles (get-files system) (car (reverse (get-rutaActual system))) '()) (recorridoRutasDirectories (get-directory system) (car (reverse (get-rutaActual system))) '())))
+   (if (equal? parametro "/a") (append (recorridoRutasFiles (get-files system) (car (reverse (get-rutaActual system))) '()) (recorridoRutasDirectories (get-directory system) (car (reverse (get-rutaActual system))) '()))
+       (if (equal? parametro "/o N") (sort (append (recorridoRutasFiles (get-files system) (car (reverse (get-rutaActual system))) '()) (recorridoRutasDirectories (get-directory system) (car (reverse (get-rutaActual system))) '())) string<? ) system) )))
