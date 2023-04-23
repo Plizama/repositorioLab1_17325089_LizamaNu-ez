@@ -26,6 +26,9 @@
 
 ;; Constructor fecha creacion
 (define make-fechaCreacion (current-seconds))
+;; Constructor Trash
+(define (make-trash deletedFile trash)
+ (cons deletedFile '(trash)))
 
 ;; CAPA SELECTORA
 
@@ -60,9 +63,13 @@
 (define (get-directory system)
   (car(cdr(cdr(reverse system)))))
 
-;; Selector Nombre directorio
+;; Selector Listado Nombre directorio
 (define (get-name-directory listDirectory)
   (car listDirectory))
+
+;; Selector Cada nombre directorio
+(define (get-name-Cadadirectory listDirectory)
+  (car (car listDirectory)))
 
 ;; Selector Ruta directorio
 (define (get-ruta-directory listDirectory)
@@ -75,7 +82,10 @@
 ;;Selector nombre files
 (define (get-name-file file)
   (car(car file)))
-  
+
+;;Listado Nombre files
+(define (get-listname-file file)
+  (car file))
 
 ;; Selector trash
 (define (get-trash system)
@@ -122,6 +132,11 @@
 (define (set-files system filename extension content)
   (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(cons (make-file filename extension content) (get-files system))(get-trash system) ))
 
+;; Agregar File al basurero
+(define (set-trash system deletedFile)
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(get-files system)(cons '(deletedFile) (get-trash system))))
+
+
 ;; CAPA PERTENENCIA
 
 ;; Nombre drive pertenece a listado de drives
@@ -143,18 +158,26 @@
   (member nameDirectory (map (lambda (listNAmeDirectory) (get-name-directory listNAmeDirectory))
                              (get-directory system))))
 
+;; Nombre de Files existe
+(define (isNameFile? nameFile system)
+  (member nameFile (map (lambda (listNamesFiles) (get-listname-file listNamesFiles))
+                             (get-files system))))
+
 ;; Encontrar String en nombre de archivos
-(define (isInFile? str files)
-  (cond
-    [(null? files) null]
-    [(string-contains? (get-name-file files) str) (isInFile? str (cdr files))]
-    [else (cons (car files) (isInFile? str (cdr files)))]))
+
+
+;; Encontrar Letra inicial y extension
+
 
 ;;CAPA : OTRAS FUNCIONES
 
-;; redefinir file
-(define (redefine-files system files)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system) files (get-trash system)))
+;; redefinir file - trash
+(define (redefine-files system files trash)
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system) files (cons trash (get-trash system))))
+;; redefinir directory - trash
+(define (redefine-directory system listDirectory trash)
+  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion listDirectory (get-files system) (cons trash (get-trash system))))
+
 
 ;; FUNCIONES SISTEMA
 
@@ -221,14 +244,50 @@
 (define (add-file system)
   (lambda (filename extension content)
     (set-files system filename extension content)))
-;; (define S30 ((run S29 add-file) "foo1.txt" "txt" "hello world 1"))
-;; (define S31 ((run S30 add-file) "foo2.txt" "txt" "hello world 2"))
-;; (define S32 ((run S31 add-file) "foo3.docx" "docx" "hello world 3"))
-;; (define S33 ((run S32 add-file) "goo4.docx" "docx" "hello world 4"))
-
 
 ;; Funcion 10: TDA system add-file
+
+
+
+
+
+;; Funcion 11: TDA system-del
 (define (del system)
   (lambda (archivoBorrado)
-    (if (eq? (string-ref archivoBorrado 0) #\*) (redefine-files system (isInFile? (substring archivoBorrado 1) (get-files system)))
-        (if (eq? (string-ref archivoBorrado 1) #\*) (redefine-files system (isInFile? (substring archivoBorrado 2) (get-files system))) system))))
+    ;; Funcion interna identifica presencia de trozo de string en nombre de archivos.
+    (define (isInFile? str files acumTrash acumFiles)
+      (cond
+        [(null? files) acumTrash acumFiles
+                       (redefine-files system acumFiles acumTrash)]
+        [(string-contains? (get-name-file files) str) (isInFile? str (cdr files) (cons (car files) acumTrash) acumFiles)]
+        [ else (cons (car files) (isInFile? str (cdr files) acumTrash (cons (car files) acumFiles)))]))
+    
+    ;; Funcion interna identifica la presencia de letra de inicio de archivo y final de string
+    (define (isInFilExtenLetter? str files acumTrash acumFiles)
+      (cond
+        [(null? files) acumTrash acumFiles
+                       (redefine-files system acumFiles acumTrash)]
+        [(and (eq? (string-ref (get-name-file files) 0) (string-ref str 0))(string-contains? (get-name-file files) (substring str 2))) (isInFilExtenLetter? str (cdr files)(cons (car files) acumTrash) acumFiles)]
+        [else (cons (car files) (isInFilExtenLetter? str (cdr files) acumTrash (cons (car files) acumFiles)))]))
+    ;; Funcion interna revisa file con nombre indicado
+    (define (isNameFileinFile? str files acumTrash acumFiles)
+      (cond
+        [(null? files) acumTrash acumFiles
+                       (redefine-files system acumFiles acumTrash)]
+        [(equal? (get-name-file files) str) (isNameFileinFile? str (cdr files) (cons (car files) acumTrash) acumFiles)]
+        [ else (cons (car files) (isNameFileinFile? str (cdr files) acumTrash (cons (car files) acumFiles)))]))
+
+    ;; Funcion interna revisa directorio con nombre indicado
+    (define (isNameDirectoryinDirectory? str directories acumTrash acumDirectory)
+      (cond
+        [(null? directories) acumTrash acumDirectory
+                       (redefine-directory system acumDirectory acumTrash)]
+        [(equal? (get-name-Cadadirectory directories) str) (isNameDirectoryinDirectory? str (cdr directories) (cons (car directories) acumTrash) acumDirectory)]
+        [ else (cons (car directories) (isNameDirectoryinDirectory? str (cdr directories) acumTrash (cons (car directories) acumDirectory)))]))
+
+    
+    (if (isNameDirectory? archivoBorrado system)(isNameDirectoryinDirectory? archivoBorrado (get-directory system) '()'())
+        (if (eq? archivoBorrado "*.*") (redefine-files system '() (get-files system))
+            (if (isNameFile? archivoBorrado system)(isNameFileinFile? archivoBorrado (get-files system) '()'())
+                (if (eq? (string-ref archivoBorrado 0) #\*) (isInFile? (substring archivoBorrado 1) (get-files system) '() '())
+                    (if (eq? (string-ref archivoBorrado 1) #\*) (isInFilExtenLetter? archivoBorrado (get-files system) '()'()) system)))))))
