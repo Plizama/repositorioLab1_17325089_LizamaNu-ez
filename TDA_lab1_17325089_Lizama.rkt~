@@ -1,0 +1,81 @@
+#lang racket
+;; type filesystem = list name(str) X drives(list) X users(list) X userLog(str) X rutaActual(list) X fechaCreacion (num) X directories(list) X files(list) X trash(list)
+;; type name = str name
+
+;; type drives = list drive(list)
+  ;; type drive = list letter(str) X name(str) X capacity (num)
+
+;; type users = list user(str)
+
+;; type userLog = userLog(str)
+
+;; type rutaActual = list drive X directory X subdirectory
+
+;; type fechaCreacion = fechaCreacion (num)
+
+;; type directories = list directory
+  ;; type directory = list name(str) X ruta(list) X userCreador(str) X fechaCreacion(num) X fechaModificación(num)
+
+;; type files = list file
+  ;; type file = list name(str) X extension(str) X contenido(str) | atrubutos(str) X ruta(list) X userCreador(str)
+
+;Descripción:
+;Dom:
+;Rec:
+;; CAPA CONSTRUCTORA
+
+;; Constructor sistema 
+;Descripción: construye el sistema base
+;Dom: name(str) X drives(list) X users(list) X userLog(str) X rutaActual(list) X fechaCreacion (num) X directories(list) X files(list) X trash(list)
+;Rec: list name(str) X drives(list) X users(list) X userLog(str) X rutaActual(list) X fechaCreacion (num) X directories(list) X files(list) X trash(list)
+(define (make-system name drives users userLog rutaActual fechaCreacion directory file trash)
+  (list name drives users userLog rutaActual fechaCreacion directory file trash))
+
+;; Constructor drives
+;Descripción: construye drives
+;Dom: letter(str) X name(str) X capacity (num)
+;Rec: list letter(str) X name(str) X capacity (num)
+(define (make-drives letter name capacity)
+  (list letter name capacity))
+
+
+;; Constructor directory
+;Descripción: Crea directorios
+;Dom: name(str) X ruta(list) X userCreador(str) X fechaCreacion(num) X fechaModificación(num)
+;Rec:list name(str) X ruta(list) X userCreador(str) X fechaCreacion(num) X fechaModificación(num)
+(define (make-directory name ruta user-creator fecha-creacion fecha-modificacion )
+  (list name ruta user-creator fecha-creacion fecha-modificacion ))
+
+;; Constructor file información desde usuario
+;Descripción: Crea lista con información del file entregada por el usuario
+;Dom: name(str) X extension(str) X contenido(str) | atrubutos(str)
+;Rec: list name(str) X extension(str) X contenido(str) | atrubutos(str)
+(define (file filename extension contents . atributos)
+  (list filename extension contents atributos))
+
+;; Constructor files
+;Descripción: Crea file
+;Dom: name(str) X extension(str) X contenido(str) | atrubutos(str) X ruta(list) X userCreador(str)
+;Rec: list name(str) X extension(str) X contenido(str) | atrubutos(str) X ruta(list) X userCreador(str)
+(define make-file
+         (lambda (fileCompleto system)
+           (list (car fileCompleto) (cadr fileCompleto) (caddr fileCompleto) (cadddr fileCompleto) (get-rutaActual system) (get-user-log system))))
+
+;; Constructor users
+;Descripción: Crea lista de usuarios
+;Dom: usuarios (str)
+;Rec: Lista usuarios (list)
+(define (make-users name-user)
+  (list name-user))
+
+;; Constructor fecha creacion
+;Descripción: Crea dato numerico unixtime
+;Dom: función current-second (num)
+;Rec: cantidad de segundos desde 1970 (num)
+(define make-fechaCreacion (current-seconds))
+
+;; Constructor Trash
+
+(define (make-trash deletedFile trash)
+ (cons deletedFile '(trash)))
+

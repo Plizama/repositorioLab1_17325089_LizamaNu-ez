@@ -1,290 +1,28 @@
 #lang racket
 
-;; type filesystem = list name X drives X users X userLog X rutaActual X fechaCreacion X directory X file X trash
-
-;; CAPA CONSTRUCTORA
-
-;; Constructor sistema 
-(define (make-system name drives users userLog rutaActual fechaCreacion directory file trash)
-  (list name drives users userLog rutaActual fechaCreacion directory file trash))
-
-;; Constructor drives
-(define (make-drives letter name capacity directory file)
-  (list letter name capacity directory file))
-
-;; Constructor directory
-(define (make-directory name ruta user-creator fecha-creacion fecha-modificacion seguridad)
-  (list name ruta user-creator fecha-creacion fecha-modificacion seguridad))
-
-;; Constructor files
-(define (file filename extension contents . atributos)
-  (list filename extension contents atributos))
-
-;; Constructor files con formato deseado
-(define set-file-partes
-         (lambda (fileCompleto system)
-           (list (car fileCompleto) (cadr fileCompleto) (caddr fileCompleto) (cadddr fileCompleto) (get-rutaActual system) (get-user-log system))))
-  
-
-;; Constructor users
-(define (make-users name-user)
-  (list name-user))
-
-;; Constructor fecha creacion
-(define make-fechaCreacion (current-seconds))
-;; Constructor Trash
-(define (make-trash deletedFile trash)
- (cons deletedFile '(trash)))
-
-;; CAPA SELECTORA
-
-;; type filesystem = list name X drives X users X userLog X rutaActual X fechaCreacion X directory X file X trash
-
-
-;; Selector nombre systema
-(define get-nameSystem car)
-
-;; Selector lista de drives
-(define get-drives cadr)
-
-   ;; Selector nombre drive
-(define (get-name-drive listadoDrives)
-   (car listadoDrives ))
-
-;; Selector lista de usuarios ingresados
-(define get-users caddr)
-
-;; Selector usuario logeado
-(define get-user-log cadddr)
-
-;; Selector ruta actual
-(define (get-rutaActual system)
-  (car( cdr (cdr (cdr(cdr(reverse system)))))))
-
-;; Selector Fecha creacion
-(define (get-fechaCreacion system)
-  (car(cdr(cdr(cdr(reverse system))))))
-
-;; Selector directory
-(define (get-directory system)
-  (car(cdr(cdr(reverse system)))))
-
-;; Selector Listado Nombre directorio
-(define (get-name-directory listDirectory)
-  (car listDirectory))
-
-;; Selector Cada nombre directorio
-(define (get-name-Cadadirectory listDirectory)
-  (car (car listDirectory)))
-
-;; Selector Ruta directorio
-(define (get-ruta-directory listDirectory)
-  (cadr listDirectory))
-
-;;Selector user_creador directorio
-(define (get-user-directory listDirectory)
-  ( car (cdr (cdr listDirectory))))
-;; Selector fecha creacion directory
-(define (get-fechacreacion-directory listDirectory)
-  ( car (cdr (cdr ( cdr listDirectory)))))
-;; Selector seguridad directory
-(define (get-seguridad-directory listDirectory)
-  ( car (reverse listDirectory)))
-
-;;selector files
-(define (get-files system)
-  (car(cdr(reverse system))))
-
-;;Selector nombre files
-(define (get-name-file file)
-  (car(car file)))
-
-;;Selector extensión files
-(define (get-extension-file file)
-  (car(cdr (car file))))
-
-;;Selector texto files
-(define (get-texto-file file)
-  (car(cdr(cdr (car file)))))
-
-;;Selector atributos file
-(define (get-atributos-file file)
-  (car (cdr (cdr (reverse (car file))))))
-;;Selector user file
-(define (get-user-files files)
-  (car (reverse (car files))))
-
-;;Selector ruta files
-(define (get-ruta-files files)
-  (car (cdr (reverse files))))
-
-;;Listado Nombre files
-(define (get-listname-file file)
-  (car file))
-
-;; Selector trash
-(define (get-trash system)
-  (car(reverse system)))
-
-;; Selecionar ruta de carpeta indicada
-(define (get-rutaIndicada system folder)
-  (car (cdr (car (filter (lambda (str) (eq? (get-name-directory str) folder)) (get-directory system))))))
-
-;; CAPA MODIFICADORA
-
-;; Agregar drives sistema
-(define (set-drives system letter nameDrive capacity)
-  (make-system (get-nameSystem system)(cons (make-drives letter nameDrive capacity "" '())(get-drives system))(get-users system)(get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(get-files system)(get-trash system)))
-
-;; Agregar users al sistema
-(define (set-users system userName)
-  (make-system (get-nameSystem system)(get-drives system)(cons userName (get-users system))(get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(get-files system)(get-trash system)))
-
-;; Agregar usuario Logueado
-(define (set-log system userName-log)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) userName-log (get-rutaActual system)make-fechaCreacion (get-directory system)(get-files system)(get-trash system)))
-
-;; Quitar usuario logueado
-(define (set-logout system)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) "" (get-rutaActual system) make-fechaCreacion (get-directory system)(get-files system)(get-trash system)))
-
-;; Agregar unidad fijada
-(define (set-rutaActual system letter)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) (list letter) make-fechaCreacion (get-directory system)(get-files system) (get-trash system)))
-
-;; type name-directory = list name X ruta X user-creador X fecha-creacion X fecha-modificacion X seguridad
-
-;; Agregar nuevo directorio desde el nombre
-(define (set-directory system nameDirectory)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) (get-rutaActual system) make-fechaCreacion (cons (make-directory nameDirectory (get-rutaActual system) (get-user-log system) make-fechaCreacion make-fechaCreacion "") (get-directory system))(get-files system)(get-trash system)))
-
-;; Copiar nuevo directorio
-(define (set-neWdirectory system newDirectory)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) (get-rutaActual system) make-fechaCreacion (cons newDirectory (get-directory system)) (get-files system)(get-trash system)))
-
-;; Agregar directorio a ruta
-
-(define (set-newRutaActual system RutaAntigua newRuta)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) (reverse (cons newRuta (reverse RutaAntigua))) make-fechaCreacion (get-directory system)(get-files system)(get-trash system)))
-
-;; Cambiar ruta por completo
-(define (set-newRutaCompleta system newRutaCompleta )
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system) newRutaCompleta make-fechaCreacion (get-directory system)(get-files system)(get-trash system)))
-
-;; Agregar file al sistema
-(define (set-files system neWfile)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(cons neWfile ( get-files system))(get-trash system) ))
-
-;; Agregar File al basurero
-(define (set-trash system deletedFile)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system)(get-files system)(cons '(deletedFile) (get-trash system))))
-
-;; Cambiar ruta de file
-(define (set-ruta-files ruta file system)
-  (list (get-name-file file) (get-extension-file file) (get-texto-file file) (get-atributos-file file) ruta (get-user-log system)))
-
-;; Cambiar ruta de directory
-(define (set-ruta-directory ruta directory system)
-  (make-directory (get-name-Cadadirectory directory) ruta (get-user-log system) make-fechaCreacion make-fechaCreacion (car (reverse (car directory)))))
-
-
-;; CAPA PERTENENCIA
-
-;; Nombre drive pertenece a listado de drives
-(define (isNombreDrive? nombreDrive system)
-  (member nombreDrive (map (lambda (listadoDrives) (get-name-drive listadoDrives))
-                                 (get-drives system))))
-
-;; Nombre de usuario pertenece a lista de usuarios
-(define (isUserList? nombreUser system)
-  (member nombreUser (get-users system)))
-
-;; Nombre de usuario se encuentra logueado
-(define (isUserLog? nombreUser system)
-  (eq? nombreUser (get-user-log system)))
-
-                ;;CAMBIAR!!!!!!!  
-;; Nombre de directorio ya se encuentra ocupado
-(define (isNameDirectory? nameDirectory system)
-  (member nameDirectory (map (lambda (listNAmeDirectory) (get-name-directory listNAmeDirectory))
-                             (get-directory system))))
-;; listDirectory (get-directory system)
-;; Existe nombre directory?
-(define (existNameDirectory? nameDirectory listDirectory)
-  (cond
-    [(null? listDirectory) #f]
-    [ (equal? (get-name-directory (car listDirectory)) nameDirectory) #t]
-    [else (existNameDirectory? nameDirectory (cdr listDirectory))]))
-
-;;listFile (get-files system)
-;; Existe nombre file?
-(define (existNamefile? nameFile listFile)
-  (cond
-    [(null? listFile) #f]
-    [ (equal? (get-listname-file (car listFile)) nameFile) #t]
-    [else (existNamefile? nameFile (cdr listFile))]))
-
-;; Nombre de Files existe
-(define (isNameFile? nameFile system)
-  (member nameFile (map (lambda (listNamesFiles) (get-listname-file listNamesFiles))
-                             (get-files system))))
-
-;; Encontrar String en nombre de archivos
-
-
-;; Encontrar Letra inicial y extension
-
-
-;;CAPA : OTRAS FUNCIONES
-
-;; redefinir file - trash
-(define (redefine-files-trash system files trash)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system) files (cons trash (get-trash system))))
-;; redefinir file
-(define (redefine-files system files)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion (get-directory system) files (get-trash system)))
-
-
-;; redefinir directory - trash
-(define (redefine-directory-trash system listDirectory trash)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion listDirectory (get-files system) (cons trash (get-trash system))))
-
-;; redefinir directory
-(define (redefine-directory system listDirectory)
-  (make-system (get-nameSystem system)(get-drives system)(get-users system) (get-user-log system)(get-rutaActual system) make-fechaCreacion listDirectory (get-files system) (get-trash system)))
-
-
-
-
-;;Recorrido : (("nombre" "extension"......)) (lista de lista)
-;; Recorrer file en busca de nameFile
-(define (buscar-file nombreArchivo listaFile)
-      (cond
-        [(null? listaFile) null]
-        [(equal? (get-name-file listaFile) nombreArchivo) (cons (car listaFile)(buscar-file nombreArchivo (cdr listaFile)))]
-        [else (buscar-file nombreArchivo (cdr listaFile))]))
-
-;;Recorrer directory en busca de nameDirectory
-(define (buscar-directory nombreArchivo listaDirectory)
-      (cond
-        [(null? listaDirectory) null]
-        [(equal? (get-name-Cadadirectory listaDirectory) nombreArchivo) (cons (car listaDirectory)(buscar-directory nombreArchivo (cdr listaDirectory)))]
-        [else (buscar-directory nombreArchivo (cdr listaDirectory))]))
-
+(require "TDA_lab1_17325089_Lizama.rkt")
 
 ;; FUNCIONES SISTEMA
 
-;; type filesystem = list name X drives X users X userLog X rutaActual X fechaCreacion X directory X file X trash
-
 ;; Funcion 1: Creacion de nuevos sistemas
+;Descripción: Funcion crea un nuevo sistema
+;Dom: name sistema(str)
+;Rec: sistema (list)
+
 (define (system nombre)
   (list nombre '() '() "" '() make-fechaCreacion '() '() '()))
 
 ;; Funcion 2 : TDA system -run
+;Descripción: Funcion que permite ejercutar un comando
+;Dom: sistema(list) X comando (función)
+;Rec: comando (función) X sistema(list)
 (define (run system command)
   (command system))
 
 ;; Funcion 3: TDA system - add-drive
+;Descripción: Funcion ingresa un nuevo drive al sistema
+;Dom: sistema(list) X letter drive (str) X name drive (str) X capacity drive (num)
+;Rec: sistema(list)
 (define (add-drive system)
   (lambda (letter nameDrive capacity)
     (if (null? (get-drives system)) (set-drives system letter nameDrive capacity)
@@ -292,6 +30,9 @@
                    (set-drives system letter nameDrive capacity)))))
       
 ;; Funcion 4: TDA system -register
+;Descripción: Funcion que permite registrar usuarios en el sistema
+;Dom: sistema(list) X nombre usuario (str)
+;Rec: sistema(list)
 (define (add-user system)
   (lambda (userName)
     ( if (null? (get-users system)) (set-users system userName)
@@ -299,24 +40,35 @@
              (set-users system userName)))))
 
 ;; Funcion 5: TDA system -login
+;Descripción: Funcion que permite loguear a un usuario
+;Dom: sistema(list) X nombre usuario (str)
+;Rec: sistema(list)
 (define (login system)
   (lambda (userName-log)
     (if (eq? "" (get-user-log system)) (set-log system userName-log)
         system )))
 
 ;; Funcion 6: TDA system logout
+;Descripción: Funcion que permite desloguear a un usuario
+;Dom: sistema(list)
+;Rec: sistema(list)
 (define (logout system)
   (set-logout system))
 
 ;; Funcion 7: TDA system - switch-drive
+;Descripción: Funcion que permite fijar una unidad en la ruta
+;Dom: sistema(list) X nombre unidad (str)
+;Rec: sistema(list)
 (define(switch-drive system)
   (lambda (letter)
     (if (eq? "" (get-user-log system)) system
         (if (isNombreDrive? letter system ) (set-rutaActual system letter)
             system))))
 
-;; type name-directory = list name X ruta X user-creador X fecha-creacion X fecha-modificacion X seguridad
 ;; Funcion 8: TDA system-md (make directory)
+;Descripción: Función que permite crear un nuevo directorio
+;Dom: sistema(list) X nombre directorio (str)
+;Rec: sistema(list)
 (define (md system)
   (lambda (nameDirectory)
     ( if (null? (get-directory system)) (set-directory system nameDirectory)
@@ -324,7 +76,9 @@
              (set-directory system nameDirectory)))))
 
 ;;Funcion 9: TDA system -cd (change directory)
-;; FALTA S30
+;Descripción: Función que permite cambiar la ruta actual
+;Dom: sistema(list) X folderName (str)
+;Rec: sistema(list)
 (define (cd system)
   (lambda (folderName)
     (if (eq? folderName "..") (set-rutaActual system (reverse(cdr(reverse (get-rutaActual system)))))
@@ -334,21 +88,23 @@
                      system))))))
 
 
-;;Agregar files
-;;(define (add-file system)
-  ;;(lambda (filename extension content)
-    ;;(set-files system filename extension content)))
 
 ;; Funcion 10: TDA system add-file
+;Descripción: Función que permite agregar files al sistema
+;Dom: sistema(list) X file(función)
+;Rec: sistema(list)
 
 (define add-file
   (lambda (system)
     (lambda (file)
-      (set-files system (set-file-partes file system)))))
+      (set-files system (make-file file system)))))
 
 
 
 ;; Funcion 11: TDA system-del
+;Descripción: Función que permite eliminar un archivo o carpeta 
+;Dom: sistema(list) X patron para borrar archivo (str)
+;Rec: sistema(list)
 (define (del system)
   (lambda (archivoBorrado)
     ;; Funcion interna identifica presencia de trozo de string en nombre de archivos.
@@ -389,7 +145,10 @@
                 (if (eq? (string-ref archivoBorrado 0) #\*) (isInFile? (substring archivoBorrado 1) (get-files system) '() '())
                     (if (eq? (string-ref archivoBorrado 1) #\*) (isInFilExtenLetter? archivoBorrado (get-files system) '()'()) system)))))))
 
-;; Funcion 12: TDA system- rd (revisar)
+;; Funcion 12: TDA system- rd
+;Descripción: Función que permite borrar carpetas cuando esten vacias
+;Dom: sistema(list) X folderName (str)
+;Rec: sistema(list)
 (define (rd system)
   (lambda (folderName)
     (define (directoryVacio? str listaRutas)
@@ -408,12 +167,18 @@
     (if (and (directoryVacio? folderName (map (lambda (listaRutasFiles) (get-ruta-files listaRutasFiles)) (get-files system)))(directoryVacio? folderName (map (lambda (listaRutasDirectories) (get-ruta-directory listaRutasDirectories)) (get-directory system)))) (borrar-folder folderName (get-directory system) '() '()) system )))
 
 ;; Función 13: TDA system - copy
+;Descripción: Función que permite copiar un archivo o carpeta en otra ruta
+;Dom: sistema(list) X folderName (str) X ruta (str)
+;Rec: sistema(list)
 (define (copy system)
   (lambda (archivo ruta)
     (if (existNamefile? archivo (get-files system)) (set-files system (set-ruta-files (string-split ruta "/") (buscar-file archivo (get-files system)) system))
         (if (existNameDirectory? archivo (get-directory system))  (set-neWdirectory system (set-ruta-directory (string-split ruta "/") (buscar-directory archivo (get-directory system)) system))system))))
 
 ;; Función 14: TDA system - move
+;Descripción: Función que permite mover un archivo o carpeta a otra ruta
+;Dom: sistema(list) X folderName (str) X ruta (str)
+;Rec: sistema(list)
 (define (move system)
   (lambda (folder ruta)
     ;; buscar file files =get-files system
@@ -436,9 +201,12 @@
         (if (existNameDirectory? folder (get-directory system))  (isInDirectory? folder (get-directory system) '()) system))))
 
 ;; Función 15: TDA system ren (rename)
+;Descripción: Función que permite cambiar nombre de archivo
+;Dom: sistema(list) X Nombre original (str) X Nuevo nombre (str)
+;Rec: sistema(list)
 (define (ren system)
   (lambda (originalName newName)
-    ;; buscar file files =get-files system
+    ;; buscar file files
     (define (isInFile? originalName files acumFiles)
       (cond
         [(null? files)  acumFiles
@@ -451,7 +219,7 @@
       (cond
         [(null? directories)  acumDirectories
                        (redefine-directory system acumDirectories)]
-        [(equal? (get-name-directory (car directories)) originalName) (isInDirectory? originalName (cdr directories) (cons (list newName (get-ruta-directory (car directories)) (get-user-directory  (car directories)) (get-fechacreacion-directory (car directories)) make-fechaCreacion (get-seguridad-directory (car directories))) acumDirectories))]
+        [(equal? (get-name-directory (car directories)) originalName) (isInDirectory? originalName (cdr directories) (cons (list newName (get-ruta-directory (car directories)) (get-user-directory  (car directories)) (get-fechacreacion-directory (car directories)) make-fechaCreacion ) acumDirectories))]
         [ else (isInDirectory? originalName (cdr directories) (cons (car directories) acumDirectories))]))
 
     (if (or (existNamefile? newName (get-files system)) (existNameDirectory? newName (get-directory system))) system 
@@ -459,6 +227,9 @@
             (if (existNameDirectory? originalName (get-directory system))  (isInDirectory? originalName (get-directory system) '()) system)))))
 
 ;; Función 16: TDA system - dir
+;Descripción: Función que permite listar el contenido de un directorio
+;Dom: sistema(list) X parametro (str)
+;Rec: contenido directorio (str)
 (define (dir system)
   (lambda(parametro)
     (define (recorridoRutasFiles files rutaEscogida acumContenido)
